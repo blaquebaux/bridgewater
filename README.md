@@ -31,7 +31,7 @@ see:
   from price bars. We say so plainly rather than fake it (the same honesty as
   [basket](https://github.com/blaquebaux/basket)'s private funds).
 
-## Research plan (Path A — not yet built)
+## Research plan (Path A)
 
 - **Reconstruct All-Weather.** Risk-parity across SPY/IEF/TLT/GLD/DBC/DBA (+ `RPAR`, the listed Risk
   Parity ETF, as a direct proxy). Characterize it: Sharpe, drawdown, and the stock-bond-correlation
@@ -63,10 +63,49 @@ premise — the regime [bonds](https://github.com/blaquebaux/bonds) found is par
 ahead, so it's **best paired with the bonds regime read**. **Pure Alpha** stays a documented gap
 (discretionary, private, unobservable). The through-line: *diversification is regime-conditional.*
 
+## Live — a governed All-Weather book (and an overlay that, honestly, doesn't earn its place)
+
+The static book is a legitimate, distinct sleeve even though the spine beats it: the recognizable public
+Dalio **All-Seasons** allocation — **30% SPY / 15% IEF / 40% TLT / 7.5% GLD / 7.5% DBC** — run on the
+same engine + Layer-3 safety gate as the spine. It is the family's *no-forecast, maximally-diversified,
+low-vol* beta sleeve: +0.77 Sharpe at **8.9% vol and −23% maxDD** (vs SPY's 18% / −34%). [`live/bridgewater_live.jl`](live/bridgewater_live.jl).
+
+The interesting part is what it teaches about wiring. All-Weather's one known failure is the positive
+stock-bond regime (2022) — and the sibling [bonds](https://github.com/blaquebaux/bonds) sleeve publishes
+*exactly* that (63d SPY-IEF correlation). So this is the **right signal for the book's actual weakness**.
+Yet [`live/bridgewater_bonds_regime_validation.jl`](live/bridgewater_bonds_regime_validation.jl) FAILS the
+family bar, and the overlay ships **OFF**:
+
+| All-Seasons book (full 2016–2026 SIP, net 5bps) | Sharpe | CAGR | vol | maxDD |
+|---|---|---|---|---|
+| **FULL static (shipped)** | **+0.77** | 6.7% | 8.9% | −23% |
+| + bonds-regime overlay | +0.74 | 5.2% | 7.3% | **−19%** |
+| SPY (reference) | +0.88 | 15.3% | 18.0% | −34% |
+
+The overlay cuts drawdown (−23% → −19%, a 20% cut) but **costs Sharpe (+0.77 → +0.74) and ~22% of
+return** — so it fails "not worse on Sharpe" and "retains ≥80% of return." Why, when it's the *right*
+signal? The 63d correlation flags "hedge dead" on ~**33% of days**, while All-Weather only truly *breaks*
+in the acute 2022-type episodes; de-risking the other pos-corr stretches costs more return than it saves.
+This is [benchmark #4](https://github.com/blaquebaux/benchmark)'s monotonic law from the other side:
+All-Weather **already self-manages risk** (risk-parity across five asset classes, only −23% maxDD), so a
+blunt de-risking overlay can't earn its keep — the **mirror image of [blackstone](https://github.com/blaquebaux/blackstone)**,
+a naive high-beta book with *no* risk control, where the market_regime overlay earned a full Sharpe point.
+Right signal, wrong book. Opt in with `BB_BONDS_OVERLAY=1` if you specifically want the ~20% drawdown cut.
+
+```bash
+BB_DRYRUN=1 bash live/run_bridgewater_daily.sh   # dry-run: logs the target, places nothing
+```
+
+Dry-run by default; graduates to paper once `~/.config/blaquebaux/alpaca_bridgewater.env` exists. Real
+money additionally requires `BB_LIVE_CONFIRM`. Kill switch: `~/.config/blaquebaux/HALT`.
+
 ## Status
-**Research: first pass complete.** All-Weather validates the family's own spine (corr 0.96) and is mildly
-*beaten* by it (less duration); its failure mode is the positive stock-bond regime bonds already maps.
-Pure Alpha is a documented data gap. An external validation of the spine, not a new keeper. No live driver.
+**Live driver built — a governed All-Weather book; the regime overlay tested and *declined*.** All-Weather
+validates the family's own spine (corr 0.96) and is mildly *beaten* by it (less duration). The driver ships
+the recognizable static All-Seasons allocation as a distinct low-vol/low-drawdown diversification sleeve,
+but the bonds-regime overlay — the *right* signal for its 2022 weakness — fails the family bar (cuts DD 20%
+but costs Sharpe and return) because the book already self-diversifies, so it ships OFF (opt-in). Pure Alpha
+stays a documented data gap. Ships dry-run/paper; not yet run as real money.
 
 ## About Blaque Baux
 
@@ -89,7 +128,7 @@ base/blueprint and holds the [full family roster](https://github.com/blaquebaux/
 ```
 engine/     the Blaque Baux platform (git submodule -> blaquebaux/base)
 research/   three sketches (reconstruct All-Weather, vs the spine, 2022 failure + Pure Alpha gap) + scorecard
-live/       governed live drivers (once a sleeve graduates to paper A/B)
+live/       bridgewater_live.jl (governed All-Weather book) + bonds-regime validation (declined) + wrapper/plist
 ```
 
 ## License

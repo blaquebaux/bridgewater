@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- bridgewater governed All-Weather book (bonds-regime overlay OFF by default; opt-in). DRY-RUN by
+     default (logs the target, places nothing) until ~/.config/blaquebaux/alpaca_bridgewater.env exists.
+     Activate: cp to ~/Library/LaunchAgents/ and launchctl load. -->
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.blaquebaux.bridgewater</string>
+  <key>ProgramArguments</key><array><string>/bin/bash</string><string>/Users/malcolmx/blaquebaux-bridgewater/live/run_bridgewater_daily.sh</string></array>
+  <key>StartCalendarInterval</key><array>
+    <dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>50</integer></dict>
+    <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>55</integer></dict>
+  </array>
+  <key>RunAtLoad</key><false/>
+  <key>EnvironmentVariables</key><dict><key>PATH</key><string>/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin</string></dict>
+  <key>StandardOutPath</key><string>/Users/malcolmx/blaquebaux-bridgewater/logs/launchd_bridgewater.out</string>
+  <key>StandardErrorPath</key><string>/Users/malcolmx/blaquebaux-bridgewater/logs/launchd_bridgewater.err</string>
+</dict></plist>

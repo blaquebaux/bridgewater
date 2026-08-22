@@ -15,6 +15,11 @@ using Dates, Printf, Statistics
 _sh(r; ann = 252) = (x = r[isfinite.(r)]; s = std(x); s > 0 ? mean(x) / s * sqrt(ann) : NaN)
 _dd(r) = (lvl = cumprod(1 .+ r); minimum(lvl ./ accumulate(max, lvl) .- 1))
 _cagr(r) = (lvl = cumprod(1 .+ r); lvl[end]^(252 / length(r)) - 1)
+# fat-tail toolkit (family evaluation standard)
+function _jb(r); r = r[isfinite.(r)]; n = length(r); m = mean(r); s = std(r); s == 0 && return (p=1.0, skew=0.0, exkurt=0.0, normal=true)
+    z = (r .- m) ./ s; sk = mean(z.^3); ku = mean(z.^4) - 3; jb = n/6*(sk^2 + ku^2/4); (p=exp(-jb/2), skew=sk, exkurt=ku, normal=(exp(-jb/2) >= 0.05)); end
+_jensen(r, rb; rf=0.0) = (b = cov(r, rb)/var(rb); (alpha_ann = ((mean(r) - rf/252) - b*(mean(rb) - rf/252))*252, beta = b))
+_m2(r, rb; rf=0.0) = (sh = (mean(r) - rf/252)/std(r)*sqrt(252); (m2_excess = (rf + sh*std(rb)*sqrt(252)) - ((1+mean(rb))^252 - 1),))
 
 function fetch_panel(U, lb = 2600)
     try
@@ -46,6 +51,13 @@ function main_validate(; warmup = 200, corr_win = 63,
     @printf("  %-30s %8s %8s %7s %8s\n", "book", "Sharpe", "CAGR", "vol", "maxDD")
     for (lbl, r) in [("FULL All-Seasons (static)", full), ("All-Seasons + bonds overlay", over), ("SPY (reference)", spyO)]
         @printf("  %-30s %+8.2f %7.1f%% %6.1f%% %7.0f%%\n", lbl, _sh(r), _cagr(r)*100, std(r)*sqrt(252)*100, _dd(r)*100)
+    end
+    println("\n  Fat-tail toolkit (does the overlay improve tail quality Sharpe can't see?):")
+    @printf("  %-30s %8s %7s %8s %9s %8s\n", "book", "JB p", "skew", "exkurt", "Jensen α", "M² exc")
+    for (lbl, r) in [("FULL All-Seasons", full), ("+ bonds overlay", over)]
+        j = _jb(r); je = _jensen(r, spyO); m = _m2(r, spyO)
+        @printf("  %-30s %8.3f %+7.2f %8.1f %+8.1f%% %+7.1f%%   (%s)\n", lbl, j.p, j.skew, j.exkurt,
+                je.alpha_ann*100, m.m2_excess*100, j.normal ? "normal" : "NON-normal → tail matters")
     end
     shF, shO, ddF, ddO = _sh(full), _sh(over), _dd(full), _dd(over)
     dd_cut = 1 - abs(ddO)/abs(ddF); ret_keep = _cagr(over)/_cagr(full)
